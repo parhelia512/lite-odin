@@ -53,8 +53,7 @@ ren_init :: proc(win: ^sdl.Window) {
 
 initial_frame: bool
 
-@(export)
-ren_update_rects :: proc "c" (rects: [^]RenRect, count: i32) {
+ren_update_rects :: proc(rects: [^]RenRect, count: i32) {
 	sdl.UpdateWindowSurfaceRects(window, transmute([^]sdl.Rect)rects, count)
 	initial_frame = true
 	if initial_frame {
@@ -63,8 +62,7 @@ ren_update_rects :: proc "c" (rects: [^]RenRect, count: i32) {
 	}
 }
 
-@(export)
-ren_set_clip_rect :: proc "c" (rect: RenRect) {
+ren_set_clip_rect :: proc(rect: RenRect) {
 	clip.left = rect.x
 	clip.top = rect.y
 	clip.right = rect.x + rect.width
@@ -156,6 +154,7 @@ load_glyphset :: proc(font: ^RenFont, idx: i32) -> ^GlyphSet {
 
 get_glyphset :: proc(font: ^RenFont, codepoint: i32) -> ^GlyphSet {
 	idx := (codepoint >> 8) % MAX_GLYPHSET
+	assert(font != nil)
 	if font^.sets[idx] == nil {
 		font^.sets[idx] = load_glyphset(font, idx)
 	}
@@ -199,8 +198,7 @@ ren_load_font :: proc "c" (filename: cstring, size: f32) -> ^RenFont {
 	return font
 }
 
-@(export)
-ren_free_font :: proc "c" (font: ^RenFont) {
+ren_free_font :: proc(font: ^RenFont) {
 	context = runtime.default_context()
 	for i := 0; i < MAX_GLYPHSET; i += 1 {
 		set: ^GlyphSet = font^.sets[i]
@@ -246,7 +244,7 @@ ren_get_font_height :: proc "c" (font: ^RenFont) -> i32 {
 	return font^.height
 }
 
-blend_pixel :: proc(dst: RenColor, src: RenColor) -> RenColor {
+blend_pixel :: #force_inline proc(dst: RenColor, src: RenColor) -> RenColor {
 	dst := dst
 
 	ia := u32(0xff - src.a)
@@ -257,7 +255,7 @@ blend_pixel :: proc(dst: RenColor, src: RenColor) -> RenColor {
 	return dst
 }
 
-blend_pixel2 :: proc(dst: RenColor, src: RenColor, color: RenColor) -> RenColor {
+blend_pixel2 :: #force_inline proc(dst: RenColor, src: RenColor, color: RenColor) -> RenColor {
 	dst := dst
 
 	src_a := (u32(src.a) * u32(color.a)) >> 8
@@ -269,8 +267,7 @@ blend_pixel2 :: proc(dst: RenColor, src: RenColor, color: RenColor) -> RenColor 
 	return dst
 }
 
-@(export)
-ren_draw_rect :: proc "c" (rect: RenRect, color: RenColor) {
+ren_draw_rect :: proc(rect: RenRect, color: RenColor) {
 	if (color.a == 0) {
 		return
 	}
@@ -308,8 +305,7 @@ ren_draw_rect :: proc "c" (rect: RenRect, color: RenColor) {
 	}
 }
 
-@(export)
-ren_draw_image :: proc "c" (image: ^RenImage, sub: ^RenRect, x: i32, y: i32, color: RenColor) {
+ren_draw_image :: proc(image: ^RenImage, sub: ^RenRect, x: i32, y: i32, color: RenColor) {
 	context = runtime.default_context()
 	if color.a == 0 {
 		return
@@ -366,9 +362,7 @@ ren_draw_image :: proc "c" (image: ^RenImage, sub: ^RenRect, x: i32, y: i32, col
 	}
 }
 
-@(export)
-ren_draw_text :: proc "c" (font: ^RenFont, text: cstring, x: int, y: int, color: RenColor) -> int {
-	context = runtime.default_context()
+ren_draw_text :: proc(font: ^RenFont, text: string, x: i32, y: i32, color: RenColor) -> i32 {
 	rect: RenRect
 	x := x
 	p := string(text) // not a copy
@@ -388,7 +382,7 @@ ren_draw_text :: proc "c" (font: ^RenFont, text: cstring, x: int, y: int, color:
 			cast(i32)(cast(f32)y + g^.yoff),
 			color,
 		)
-		x += cast(int)g^.xadvance
+		x += cast(i32)g^.xadvance
 	}
 	return x
 }
