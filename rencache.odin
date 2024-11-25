@@ -60,18 +60,18 @@ hash :: proc "contextless" (h: u32, data: []u8) -> u32 {
 	return h
 }
 
-cell_idx :: proc(x: i32, y: i32) -> i32 {
+cell_idx :: proc "contextless" (x: i32, y: i32) -> i32 {
 	return x + y * CELLS_X
 }
 
-rects_overlap :: proc(a: RenRect, b: RenRect) -> bool {
+rects_overlap :: proc "contextless" (a: RenRect, b: RenRect) -> bool {
 // odinfmt: disable
   return b.x + b.width  >= a.x && b.x <= a.x + a.width &&
          b.y + b.height >= a.y && b.y <= a.y + a.height;
 // odinfmt: enable
 }
 
-intersect_rects :: proc(a: RenRect, b: RenRect) -> RenRect {
+intersect_rects :: proc "contextless" (a: RenRect, b: RenRect) -> RenRect {
 	x1: i32 = math.max(a.x, b.x)
 	y1: i32 = math.max(a.y, b.y)
 	x2: i32 = math.min(a.x + a.width, b.x + b.width)
@@ -79,7 +79,7 @@ intersect_rects :: proc(a: RenRect, b: RenRect) -> RenRect {
 	return {x1, y1, max(0, x2 - x1), max(0, y2 - y1)}
 }
 
-merge_rects :: proc(a: RenRect, b: RenRect) -> RenRect {
+merge_rects :: proc "contextless" (a: RenRect, b: RenRect) -> RenRect {
 	x1: i32 = min(a.x, b.x)
 	y1: i32 = min(a.y, b.y)
 	x2: i32 = max(a.x + a.width, b.x + b.width)
@@ -87,44 +87,29 @@ merge_rects :: proc(a: RenRect, b: RenRect) -> RenRect {
 	return {x1, y1, x2 - x1, y2 - y1}
 }
 
-@(export)
-rencache_show_debug :: proc "c" (enable: bool) {
+rencache_show_debug :: proc "contextless" (enable: bool) {
 	show_debug = enable
 }
 
-@(export)
-rencache_free_font :: proc "c" (font: ^RenFont) {
-	context = runtime.default_context()
+rencache_free_font :: proc(font: ^RenFont) {
 	append(&commands, Command{type = CommandType.FREE_FONT, font = font})
 }
 
-@(export)
-rencache_set_clip_rect :: proc "c" (rect: RenRect) {
-	context = runtime.default_context()
+rencache_set_clip_rect :: proc(rect: RenRect) {
 	append(
 		&commands,
 		Command{type = CommandType.SET_CLIP, rect = intersect_rects(rect, screen_rect)},
 	)
 }
 
-@(export)
-rencache_draw_rect :: proc "c" (rect: RenRect, color: RenColor) {
-	context = runtime.default_context()
+rencache_draw_rect :: proc(rect: RenRect, color: RenColor) {
 	if (!rects_overlap(screen_rect, rect)) {
 		return
 	}
 	append(&commands, Command{type = CommandType.DRAW_RECT, rect = rect, color = color})
 }
 
-@(export)
-rencache_draw_text :: proc "c" (
-	font: ^RenFont,
-	text: cstring,
-	x: int,
-	y: int,
-	color: RenColor,
-) -> int {
-	context = runtime.default_context()
+rencache_draw_text :: proc(font: ^RenFont, text: cstring, x: int, y: int, color: RenColor) -> int {
 	rect: RenRect = ---
 	rect.x = cast(i32)x
 	rect.y = cast(i32)y
@@ -153,10 +138,7 @@ rencache_invalidate :: proc "c" () {
 	runtime.memset(raw_data(cells_prev), 0xff, len(cells_prev) * size_of(u32))
 }
 
-
-@(export)
-rencache_begin_frame :: proc "c" () {
-	context = runtime.default_context()
+rencache_begin_frame :: proc() {
 	/* reset all cells if the screen width/height has changed */
 	w, h: i32
 	ren_get_size(&w, &h)
@@ -167,7 +149,7 @@ rencache_begin_frame :: proc "c" () {
 	}
 }
 
-update_overlapping_cells :: proc(r: RenRect, h: u32) {
+update_overlapping_cells :: proc "contextless" (r: RenRect, h: u32) {
 	x1 := r.x / CELL_SIZE
 	y1 := r.y / CELL_SIZE
 	x2 := (r.x + r.width) / CELL_SIZE
@@ -183,7 +165,7 @@ update_overlapping_cells :: proc(r: RenRect, h: u32) {
 	}
 }
 
-push_rect :: proc(r: RenRect, count: int) -> int {
+push_rect :: proc "contextless" (r: RenRect, count: int) -> int {
 	/* try to merge with existing rectangle */
 	for i := count - 1; i >= 0; i -= 1 {
 		rp: ^RenRect = &rect_buf[i]
@@ -200,9 +182,7 @@ push_rect :: proc(r: RenRect, count: int) -> int {
 	return count
 }
 
-@(export)
-rencache_end_frame :: proc "c" () {
-	context = runtime.default_context()
+rencache_end_frame :: proc() {
 	// TODO use arena
 	/* update cells from commands */
 	cr: RenRect

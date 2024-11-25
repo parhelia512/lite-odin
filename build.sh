@@ -10,7 +10,10 @@ set -e
 # gcc -c -O2 -g C/api/api.c C/api/api_renderer.c C/api/renderer_font.c C/api/system.c -I C/
 
 # 4
-gcc -c -O2 -g C/api/api_renderer.c C/api/renderer_font.c C/api/system.c -I C/
+# gcc -c -O2 -g C/api/api_renderer.c C/api/renderer_font.c C/api/system.c -I C/
+
+# 5
+gcc -c -O2 -g C/api/system.c -I C/
 
 ar rcs liblite.a *.o
 rm *.o

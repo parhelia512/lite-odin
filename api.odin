@@ -6,10 +6,13 @@ foreign import liblite "liblite.a"
 
 foreign liblite {
 	luaopen_system :: proc(L: ^lua.State) -> i32 ---
-	luaopen_renderer :: proc(L: ^lua.State) -> i32 ---
+	// luaopen_renderer :: proc(L: ^lua.State) -> i32 ---
 }
 
+API_TYPE_FONT :: "Font"
+
 // odinfmt: disable
+@(private="file")
 libs := [?]lua.L_Reg {
   { "system",    luaopen_system     },
   { "renderer",  luaopen_renderer   },

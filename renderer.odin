@@ -1,6 +1,5 @@
 package main
 
-import "base:runtime"
 import "core:fmt"
 import "core:math"
 import "core:mem"
@@ -69,8 +68,7 @@ ren_set_clip_rect :: proc "contextless" (rect: RenRect) {
 	clip.bottom = rect.y + rect.height
 }
 
-@(export)
-ren_get_size :: proc "c" (x: ^i32, y: ^i32) {
+ren_get_size :: proc "contextless" (x: ^i32, y: ^i32) {
 	surf: ^sdl.Surface = sdl.GetWindowSurface(window)
 	x^ = surf^.w
 	y^ = surf^.h
@@ -161,9 +159,7 @@ get_glyphset :: proc(font: ^RenFont, codepoint: i32) -> ^GlyphSet {
 	return font^.sets[idx]
 }
 
-@(export)
-ren_load_font :: proc "c" (filename: cstring, size: f32) -> ^RenFont {
-	context = runtime.default_context()
+ren_load_font :: proc(filename: cstring, size: f32) -> ^RenFont {
 	/* init font */
 	font := new(RenFont)
 	font^.size = size
@@ -210,24 +206,17 @@ ren_free_font :: proc(font: ^RenFont) {
 	free(font)
 }
 
-@(export)
-ren_set_font_tab_width :: proc "c" (font: ^RenFont, n: i32) {
-	context = runtime.default_context()
+ren_set_font_tab_width :: proc(font: ^RenFont, n: i32) {
 	set: ^GlyphSet = get_glyphset(font, '\t')
 	set^.glyphs['\t'].xadvance = cast(f32)n
 }
 
-
-@(export)
-ren_get_font_tab_width :: proc "c" (font: ^RenFont) -> i32 {
-	context = runtime.default_context()
+ren_get_font_tab_width :: proc(font: ^RenFont) -> i32 {
 	set: ^GlyphSet = get_glyphset(font, '\t')
 	return cast(i32)set^.glyphs['\t'].xadvance
 }
 
-@(export)
-ren_get_font_width :: proc "c" (font: ^RenFont, text: cstring) -> i32 {
-	context = runtime.default_context()
+ren_get_font_width :: proc(font: ^RenFont, text: cstring) -> i32 {
 	x: i32 = 0
 	p := string(text) // not a copy
 	for codepoint, index in p {
@@ -238,8 +227,7 @@ ren_get_font_width :: proc "c" (font: ^RenFont, text: cstring) -> i32 {
 	return x
 }
 
-@(export)
-ren_get_font_height :: proc "c" (font: ^RenFont) -> i32 {
+ren_get_font_height :: proc "contextless" (font: ^RenFont) -> i32 {
 	return font^.height
 }
 
