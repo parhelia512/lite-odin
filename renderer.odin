@@ -45,7 +45,7 @@ RenFont :: struct {
 	height:  i32,
 }
 
-ren_init :: proc(win: ^sdl.Window) {
+ren_init :: proc "contextless" (win: ^sdl.Window) {
 	window = win
 	surf: ^sdl.Surface = sdl.GetWindowSurface(window)
 	ren_set_clip_rect(RenRect{0, 0, surf^.w, surf^.h})
@@ -53,7 +53,7 @@ ren_init :: proc(win: ^sdl.Window) {
 
 initial_frame: bool
 
-ren_update_rects :: proc(rects: [^]RenRect, count: i32) {
+ren_update_rects :: proc "contextless" (rects: [^]RenRect, count: i32) {
 	sdl.UpdateWindowSurfaceRects(window, transmute([^]sdl.Rect)rects, count)
 	initial_frame = true
 	if initial_frame {
@@ -62,7 +62,7 @@ ren_update_rects :: proc(rects: [^]RenRect, count: i32) {
 	}
 }
 
-ren_set_clip_rect :: proc(rect: RenRect) {
+ren_set_clip_rect :: proc "contextless" (rect: RenRect) {
 	clip.left = rect.x
 	clip.top = rect.y
 	clip.right = rect.x + rect.width
@@ -199,7 +199,6 @@ ren_load_font :: proc "c" (filename: cstring, size: f32) -> ^RenFont {
 }
 
 ren_free_font :: proc(font: ^RenFont) {
-	context = runtime.default_context()
 	for i := 0; i < MAX_GLYPHSET; i += 1 {
 		set: ^GlyphSet = font^.sets[i]
 		if set != nil {
@@ -244,7 +243,7 @@ ren_get_font_height :: proc "c" (font: ^RenFont) -> i32 {
 	return font^.height
 }
 
-blend_pixel :: #force_inline proc(dst: RenColor, src: RenColor) -> RenColor {
+blend_pixel :: #force_inline proc "contextless" (dst: RenColor, src: RenColor) -> RenColor {
 	dst := dst
 
 	ia := u32(0xff - src.a)
@@ -255,7 +254,11 @@ blend_pixel :: #force_inline proc(dst: RenColor, src: RenColor) -> RenColor {
 	return dst
 }
 
-blend_pixel2 :: #force_inline proc(dst: RenColor, src: RenColor, color: RenColor) -> RenColor {
+blend_pixel2 :: #force_inline proc "contextless" (
+	dst: RenColor,
+	src: RenColor,
+	color: RenColor,
+) -> RenColor {
 	dst := dst
 
 	src_a := (u32(src.a) * u32(color.a)) >> 8
@@ -267,12 +270,10 @@ blend_pixel2 :: #force_inline proc(dst: RenColor, src: RenColor, color: RenColor
 	return dst
 }
 
-ren_draw_rect :: proc(rect: RenRect, color: RenColor) {
+ren_draw_rect :: proc "contextless" (rect: RenRect, color: RenColor) {
 	if (color.a == 0) {
 		return
 	}
-
-	context = runtime.default_context()
 
 	x1: i32 = rect.x < clip.left ? clip.left : rect.x
 	y1: i32 = rect.y < clip.top ? clip.top : rect.y
@@ -305,8 +306,13 @@ ren_draw_rect :: proc(rect: RenRect, color: RenColor) {
 	}
 }
 
-ren_draw_image :: proc(image: ^RenImage, sub: ^RenRect, x: i32, y: i32, color: RenColor) {
-	context = runtime.default_context()
+ren_draw_image :: proc "contextless" (
+	image: ^RenImage,
+	sub: ^RenRect,
+	x: i32,
+	y: i32,
+	color: RenColor,
+) {
 	if color.a == 0 {
 		return
 	}
