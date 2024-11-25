@@ -11,15 +11,6 @@ import "core:strings"
 import lua "vendor:lua/5.2"
 import sdl "vendor:sdl2"
 
-// import "renderer"
-
-foreign import liblite "liblite.a"
-
-foreign liblite {
-	api_load_libs :: proc(state: ^lua.State) ---
-	// ren_init :: proc(window: ^sdl.Window) ---
-}
-
 // global tracking allocator to be used in atexit handler
 when ODIN_DEBUG {
 	track: mem.Tracking_Allocator
