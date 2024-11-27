@@ -240,6 +240,8 @@ f_chdir :: proc "c" (L: ^lua.State) -> i32 {
 
 f_list_dir :: proc "c" (L: ^lua.State) -> i32 {
 	context = runtime.default_context()
+	// create a separate temp region
+	runtime.DEFAULT_TEMP_ALLOCATOR_TEMP_GUARD()
 	path: cstring = lua.L_checkstring(L, 1)
 
 	handle, err1 := os.open(string(path))
@@ -250,8 +252,7 @@ f_list_dir :: proc "c" (L: ^lua.State) -> i32 {
 		return 2
 	}
 
-	entries, err2 := os.read_dir(handle, -1)
-	defer os.file_info_slice_delete(entries)
+	entries, err2 := os.read_dir(handle, -1, context.temp_allocator)
 	if err2 != nil {
 		lua.pushnil(L)
 		lua.pushstring(L, strings.unsafe_string_to_cstring(os.error_string(err2)))
@@ -263,7 +264,7 @@ f_list_dir :: proc "c" (L: ^lua.State) -> i32 {
 		if e.name == "." || e.name == ".." {
 			continue
 		}
-		lua.pushstring(L, cstring(strings.unsafe_string_to_cstring(e.name)))
+		lua.pushstring(L, cstring(strings.clone_to_cstring(e.name, context.temp_allocator)))
 		lua.rawseti(L, -2, i32(idx + 1))
 	}
 	return 1
@@ -283,8 +284,7 @@ f_get_file_info :: proc "c" (L: ^lua.State) -> i32 {
 	context = runtime.default_context()
 	path: cstring = lua.L_checkstring(L, 1)
 
-	fi, err := os.stat(string(path))
-	defer os.file_info_delete(fi)
+	fi, err := os.stat(string(path), context.temp_allocator)
 	if err != nil {
 		lua.pushnil(L)
 		lua.pushstring(L, strings.unsafe_string_to_cstring(os.error_string(err)))

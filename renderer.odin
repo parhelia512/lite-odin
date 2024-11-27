@@ -44,10 +44,13 @@ RenFont :: struct {
 	height:  i32,
 }
 
-ren_init :: proc "contextless" (win: ^sdl.Window) {
+ren_init :: proc (win: ^sdl.Window) {
 	window = win
 	surf: ^sdl.Surface = sdl.GetWindowSurface(window)
 	ren_set_clip_rect(RenRect{0, 0, surf^.w, surf^.h})
+
+	// init the rencache
+	rencache_init()
 }
 
 initial_frame: bool

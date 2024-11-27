@@ -44,9 +44,8 @@ cells_prev: []u32 = cells_buf1[:]
 cells: []u32 = cells_buf2[:]
 rect_buf: [CELLS_X * CELLS_Y / 2]RenRect
 
-// command_buf: [COMMAND_BUF_SIZE]i8
-// command_buf_idx: int
 commands: [dynamic]Command
+frame_temp_arena: runtime.Arena_Temp
 
 screen_rect: RenRect
 show_debug: bool
@@ -85,6 +84,11 @@ merge_rects :: proc "contextless" (a: RenRect, b: RenRect) -> RenRect {
 	x2: i32 = max(a.x + a.width, b.x + b.width)
 	y2: i32 = max(a.y + a.height, b.y + b.height)
 	return {x1, y1, x2 - x1, y2 - y1}
+}
+
+rencache_init :: proc () {
+	assert(len(commands) == 0)
+	commands = make([dynamic]Command, context.temp_allocator)
 }
 
 rencache_show_debug :: proc "contextless" (enable: bool) {
@@ -139,6 +143,7 @@ rencache_invalidate :: proc "c" () {
 }
 
 rencache_begin_frame :: proc() {
+	frame_temp_arena = runtime.default_temp_allocator_temp_begin()
 	/* reset all cells if the screen width/height has changed */
 	w, h: i32
 	ren_get_size(&w, &h)
@@ -271,9 +276,8 @@ rencache_end_frame :: proc() {
 
 	/* swap cell buffer and reset */
 	cells, cells_prev = cells_prev, cells
-	// unsigned * tmp = cells
-	// cells = cells_prev
-	// cells_prev = tmp
-	// command_buf_idx = 0
+
+	// free everything
+	runtime.default_temp_allocator_temp_end(frame_temp_arena)
 }
 
