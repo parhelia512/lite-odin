@@ -362,9 +362,8 @@ ren_draw_image :: proc "contextless" (
 ren_draw_text :: proc(font: ^RenFont, text: string, x: i32, y: i32, color: RenColor) -> i32 {
 	rect: RenRect
 	x := x
-	p := string(text) // not a copy
 
-	for codepoint, index in p {
+	for codepoint in text {
 		set: ^GlyphSet = get_glyphset(font, cast(i32)codepoint)
 		g: ^stbtt.bakedchar = &set^.glyphs[codepoint & 0xff]
 
