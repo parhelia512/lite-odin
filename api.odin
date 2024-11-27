@@ -1,6 +1,6 @@
 package main
 
-import lua "vendor:lua/5.2"
+import lua "vendor:lua/5.4"
 
 API_TYPE_FONT :: "Font"
 

@@ -8,7 +8,7 @@ import "core:os"
 import "core:os/os2"
 import "core:strings"
 
-import lua "vendor:lua/5.2"
+import lua "vendor:lua/5.4"
 import sdl "vendor:sdl2"
 
 // global tracking allocator to be used in atexit handler
@@ -46,9 +46,6 @@ blue :: #force_inline proc($s: string) -> string {
 
 run_at_exit :: proc "c" () {
 	context = runtime.default_context()
-	fmt.println(blue("Exiting..."))
-	sdl.DestroyWindow(window)
-	sdl.Quit()
 
 	when ODIN_DEBUG {
 		red :: proc($s: string) -> string {
@@ -85,8 +82,6 @@ main :: proc() {
 	}
 	libc.atexit(run_at_exit)
 
-	defer sdl.Quit()
-
 	sdl.EnableScreenSaver()
 	// ret value can be ignored as it just returns the previous state
 	sdl.EventState(sdl.EventType.DROPFILE, sdl.ENABLE)
@@ -111,7 +106,6 @@ main :: proc() {
 	ren_init(window)
 
 	L := lua.L_newstate()
-	defer lua.close(L)
 
 	lua.L_openlibs(L)
 
@@ -120,7 +114,7 @@ main :: proc() {
 	lua.newtable(L)
 	for arg, idx in os.args {
 		lua.pushstring(L, strings.clone_to_cstring(arg, context.temp_allocator))
-		lua.rawseti(L, -2, cast(i32)idx + 1)
+		lua.rawseti(L, -2, cast(lua.Integer)(idx + 1))
 	}
 	lua.setglobal(L, "ARGS")
 
@@ -156,5 +150,9 @@ main :: proc() {
         end)`
 
 	lua.L_dostring(L, lua_code)
+
+	lua.close(L)
+	sdl.DestroyWindow(window)
+	sdl.Quit()
 }
 

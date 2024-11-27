@@ -11,7 +11,7 @@ import "core:time"
 
 import "core:sys/windows"
 
-import lua "vendor:lua/5.2"
+import lua "vendor:lua/5.4"
 import sdl "vendor:sdl2"
 
 button_name :: proc(button: u8) -> cstring {
@@ -56,8 +56,8 @@ f_poll_event :: proc "c" (L: ^lua.State) -> i32 {
 	case .WINDOWEVENT:
 		if (e.window.event == sdl.WindowEventID.RESIZED) {
 			lua.pushstring(L, "resized")
-			lua.pushnumber(L, lua.Number(e.window.data1))
-			lua.pushnumber(L, lua.Number(e.window.data2))
+			lua.pushinteger(L, lua.Integer(e.window.data1))
+			lua.pushinteger(L, lua.Integer(e.window.data2))
 			return 3
 		} else if (e.window.event == sdl.WindowEventID.EXPOSED) {
 			rencache_invalidate()
@@ -77,8 +77,8 @@ f_poll_event :: proc "c" (L: ^lua.State) -> i32 {
 		sdl.GetWindowPosition(window, &wx, &wy)
 		lua.pushstring(L, "filedropped")
 		lua.pushstring(L, e.drop.file)
-		lua.pushnumber(L, cast(lua.Number)(mx - wx))
-		lua.pushnumber(L, cast(lua.Number)(my - wy))
+		lua.pushinteger(L, cast(lua.Integer)(mx - wx))
+		lua.pushinteger(L, cast(lua.Integer)(my - wy))
 		sdl.free(transmute([^]u8)e.drop.file)
 		return 4
 
@@ -103,9 +103,9 @@ f_poll_event :: proc "c" (L: ^lua.State) -> i32 {
 		}
 		lua.pushstring(L, "mousepressed")
 		lua.pushstring(L, button_name(e.button.button))
-		lua.pushnumber(L, cast(lua.Number)e.button.x)
-		lua.pushnumber(L, cast(lua.Number)e.button.y)
-		lua.pushnumber(L, cast(lua.Number)e.button.clicks)
+		lua.pushinteger(L, cast(lua.Integer)e.button.x)
+		lua.pushinteger(L, cast(lua.Integer)e.button.y)
+		lua.pushinteger(L, cast(lua.Integer)e.button.clicks)
 		return 5
 
 	case .MOUSEBUTTONUP:
@@ -114,21 +114,21 @@ f_poll_event :: proc "c" (L: ^lua.State) -> i32 {
 		}
 		lua.pushstring(L, "mousereleased")
 		lua.pushstring(L, button_name(e.button.button))
-		lua.pushnumber(L, cast(lua.Number)e.button.x)
-		lua.pushnumber(L, cast(lua.Number)e.button.y)
+		lua.pushinteger(L, cast(lua.Integer)e.button.x)
+		lua.pushinteger(L, cast(lua.Integer)e.button.y)
 		return 4
 
 	case .MOUSEMOTION:
 		lua.pushstring(L, "mousemoved")
-		lua.pushnumber(L, cast(lua.Number)e.motion.x)
-		lua.pushnumber(L, cast(lua.Number)e.motion.y)
-		lua.pushnumber(L, cast(lua.Number)e.motion.xrel)
-		lua.pushnumber(L, cast(lua.Number)e.motion.yrel)
+		lua.pushinteger(L, cast(lua.Integer)e.motion.x)
+		lua.pushinteger(L, cast(lua.Integer)e.motion.y)
+		lua.pushinteger(L, cast(lua.Integer)e.motion.xrel)
+		lua.pushinteger(L, cast(lua.Integer)e.motion.yrel)
 		return 5
 
 	case .MOUSEWHEEL:
 		lua.pushstring(L, "mousewheel")
-		lua.pushnumber(L, cast(lua.Number)e.wheel.y)
+		lua.pushinteger(L, cast(lua.Integer)e.wheel.y)
 		return 2
 
 	case:
@@ -265,7 +265,7 @@ f_list_dir :: proc "c" (L: ^lua.State) -> i32 {
 			continue
 		}
 		lua.pushstring(L, cstring(strings.clone_to_cstring(e.name, context.temp_allocator)))
-		lua.rawseti(L, -2, i32(idx + 1))
+		lua.rawseti(L, -2, cast(lua.Integer)(idx + 1))
 	}
 	return 1
 }
@@ -292,10 +292,10 @@ f_get_file_info :: proc "c" (L: ^lua.State) -> i32 {
 	}
 
 	lua.newtable(L)
-	lua.pushnumber(L, cast(lua.Number)time.time_to_unix(fi.modification_time))
+	lua.pushinteger(L, cast(lua.Integer)time.time_to_unix(fi.modification_time))
 	lua.setfield(L, -2, "modified")
 
-	lua.pushnumber(L, cast(lua.Number)fi.size)
+	lua.pushinteger(L, cast(lua.Integer)fi.size)
 	lua.setfield(L, -2, "size")
 
 	if fi.is_dir {
@@ -387,7 +387,7 @@ f_fuzzy_match :: proc "c" (L: ^lua.State) -> i32 {
 	}
 
 	remaining := str_len - i
-	lua.pushnumber(L, cast(lua.Number)(score - i32(remaining)))
+	lua.pushinteger(L, cast(lua.Integer)(score - i32(remaining)))
 
 	return 1
 }

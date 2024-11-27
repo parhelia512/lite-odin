@@ -2,7 +2,7 @@ package main
 
 import "base:runtime"
 
-import lua "vendor:lua/5.2"
+import lua "vendor:lua/5.4"
 
 @(private = "file")
 checkcolor :: proc(L: ^lua.State, idx: i32, default: i32) -> RenColor {

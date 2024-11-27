@@ -11,6 +11,7 @@ local Doc
 
 local core = {}
 
+core.quit_request = false
 
 local function project_scan_thread()
   local function diff_files(a, b)
@@ -126,8 +127,8 @@ function core.init()
 end
 
 
-local temp_uid = (system.get_time() * 1000) % 0xffffffff
-local temp_file_prefix = string.format(".lite_temp_%08x", temp_uid)
+local temp_uid = math.floor(system.get_time() * 1000) % 0xffffffff
+local temp_file_prefix = string.format(".lite_temp_%08x", tonumber(temp_uid))
 local temp_file_counter = 0
 
 local function delete_temp_files()
@@ -148,7 +149,8 @@ end
 function core.quit(force)
   if force then
     delete_temp_files()
-    os.exit()
+    core.quit_request = true
+    return
   end
   local dirty_count = 0
   local dirty_name
@@ -450,6 +452,9 @@ end)
 
 function core.run()
   while true do
+    if core.quit_request then
+      break
+    end
     core.frame_start = system.get_time()
     local did_redraw = core.step()
     run_threads()

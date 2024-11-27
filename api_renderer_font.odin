@@ -2,7 +2,7 @@ package main
 
 import "base:runtime"
 
-import lua "vendor:lua/5.2"
+import lua "vendor:lua/5.4"
 
 f_load :: proc "c" (L: ^lua.State) -> i32 {
 	context = runtime.default_context()
