@@ -1,8 +1,9 @@
 package main
 
-import "base:runtime" // memset
+import "base:runtime"
 import "core:fmt"
 import "core:math"
+import "core:math/rand"
 import "core:mem"
 import "core:strings"
 
@@ -30,12 +31,12 @@ CommandType :: enum {
 
 Command :: struct {
 	type:      CommandType,
-	size:      int,
+	size:      i32,
 	rect:      RenRect,
 	color:     RenColor,
 	font:      ^RenFont,
 	tab_width: i32,
-	text:      string,
+	text:      [0]u8,
 }
 
 cells_buf1: [CELLS_X * CELLS_Y]u32
@@ -44,8 +45,8 @@ cells_prev: []u32 = cells_buf1[:]
 cells: []u32 = cells_buf2[:]
 rect_buf: [CELLS_X * CELLS_Y / 2]RenRect
 
-commands: [dynamic]Command
-frame_temp_arena: runtime.Arena_Temp
+command_buf: [COMMAND_BUF_SIZE]u8
+command_buf_idx: int
 
 screen_rect: RenRect
 show_debug: bool
@@ -86,9 +87,29 @@ merge_rects :: proc "contextless" (a: RenRect, b: RenRect) -> RenRect {
 	return {x1, y1, x2 - x1, y2 - y1}
 }
 
-rencache_init :: proc () {
-	assert(len(commands) == 0)
-	commands = make([dynamic]Command, context.temp_allocator)
+push_command :: proc(type: CommandType, size: int) -> ^Command {
+
+	cmd := transmute(^Command)&command_buf[command_buf_idx]
+	n := command_buf_idx + size
+	if n > COMMAND_BUF_SIZE {
+		fmt.println("Command buffer exhausted!")
+		return nil
+	}
+	command_buf_idx = n
+	runtime.memset(cmd, 0, size)
+	cmd.type = type
+	cmd.size = cast(i32)size
+	return cmd
+}
+
+next_command :: proc(prev: ^^Command) -> bool {
+	if prev^ == nil {
+		prev^ = transmute(^Command)&command_buf[0]
+	} else {
+		cmd := prev^
+		prev^ = (^Command)(uintptr(cmd) + uintptr(cmd.size))
+	}
+	return prev^ != (transmute(^Command)&command_buf[command_buf_idx])
 }
 
 rencache_show_debug :: proc "contextless" (enable: bool) {
@@ -96,21 +117,22 @@ rencache_show_debug :: proc "contextless" (enable: bool) {
 }
 
 rencache_free_font :: proc(font: ^RenFont) {
-	append(&commands, Command{type = CommandType.FREE_FONT, font = font})
+	cmd := push_command(.FREE_FONT, size_of(Command))
+	if cmd != nil do cmd.font = font
 }
 
 rencache_set_clip_rect :: proc(rect: RenRect) {
-	append(
-		&commands,
-		Command{type = CommandType.SET_CLIP, rect = intersect_rects(rect, screen_rect)},
-	)
+	cmd := push_command(.SET_CLIP, size_of(Command))
+	if cmd != nil do cmd.rect = intersect_rects(rect, screen_rect)
 }
 
 rencache_draw_rect :: proc(rect: RenRect, color: RenColor) {
-	if (!rects_overlap(screen_rect, rect)) {
-		return
+	if !rects_overlap(screen_rect, rect) do return
+	cmd := push_command(.DRAW_RECT, size_of(Command))
+	if cmd != nil {
+		cmd.rect = intersect_rects(rect, screen_rect)
+		cmd.color = color
 	}
-	append(&commands, Command{type = CommandType.DRAW_RECT, rect = rect, color = color})
 }
 
 rencache_draw_text :: proc(font: ^RenFont, text: cstring, x: int, y: int, color: RenColor) -> int {
@@ -121,17 +143,20 @@ rencache_draw_text :: proc(font: ^RenFont, text: cstring, x: int, y: int, color:
 	rect.height = ren_get_font_height(font)
 
 	if (rects_overlap(screen_rect, rect)) {
-		append(
-			&commands,
-			Command {
-				type = CommandType.DRAW_TEXT,
-				text = strings.clone(string(text)),
-				color = color,
-				rect = rect,
-				font = font,
-				tab_width = ren_get_font_tab_width(font),
-			},
-		)
+		text_len := len(text) + 1
+		cmd := push_command(.DRAW_TEXT, size_of(Command) + text_len)
+		if cmd != nil {
+			cmd.color = color
+			cmd.rect = rect
+			cmd.font = font
+			cmd.tab_width = ren_get_font_tab_width(font)
+			text_buf: [^]u8 = transmute([^]u8)&cmd.text
+			text_in: [^]u8 = transmute([^]u8)text
+
+			for i := 0; i < text_len; i += 1 {
+				text_buf[i] = text_in[i]
+			}
+		}
 	}
 
 	return x + int(rect.width)
@@ -143,7 +168,6 @@ rencache_invalidate :: proc "c" () {
 }
 
 rencache_begin_frame :: proc() {
-	frame_temp_arena = runtime.default_temp_allocator_temp_begin()
 	/* reset all cells if the screen width/height has changed */
 	w, h: i32
 	ren_get_size(&w, &h)
@@ -188,10 +212,10 @@ push_rect :: proc "contextless" (r: RenRect, count: int) -> int {
 }
 
 rencache_end_frame :: proc() {
-	// TODO use arena
 	/* update cells from commands */
 	cr: RenRect
-	for &cmd in commands {
+	cmd: ^Command
+	for next_command(&cmd) {
 		if cmd.type == CommandType.SET_CLIP {
 			cr = cmd.rect
 		}
@@ -200,10 +224,10 @@ rencache_end_frame :: proc() {
 			continue
 		}
 		h: u32 = HASH_INITIAL
-		h = hash(h, mem.ptr_to_bytes(&cmd, 1))
-		if (cmd.type == .DRAW_TEXT) {
-			h = hash(h, transmute([]u8)cmd.text)
-		}
+
+		// hash the bytes
+		off := cast(i32)(uintptr(cmd) - uintptr(&command_buf[0]))
+		h = hash(h, command_buf[off:off + cmd.size])
 		update_overlapping_cells(r, h)
 	}
 
@@ -239,7 +263,8 @@ rencache_end_frame :: proc() {
 		r: RenRect = rect_buf[i]
 		ren_set_clip_rect(r)
 
-		for cmd in commands {
+		cmd = nil
+		for next_command(&cmd) {
 			switch cmd.type {
 			case .FREE_FONT:
 				has_free_commands = true
@@ -249,11 +274,15 @@ rencache_end_frame :: proc() {
 				ren_draw_rect(cmd.rect, cmd.color)
 			case .DRAW_TEXT:
 				ren_set_font_tab_width(cmd.font, cmd.tab_width)
-				ren_draw_text(cmd.font, cmd.text, cmd.rect.x, cmd.rect.y, cmd.color)
+				text := strings.string_from_ptr(
+					cast([^]u8)&cmd.text,
+					int(cmd.size) - size_of(Command),
+				)
+				ren_draw_text(cmd.font, text, cmd.rect.x, cmd.rect.y, cmd.color)
 			}
 		}
 		if (show_debug) {
-			color := RenColor{0, 0, 255, 50} // red(bgra)
+			color := RenColor{u8(rand.uint32()), u8(rand.uint32()), u8(rand.uint32()), 50} // red(bgra)
 			ren_draw_rect(r, color)
 		}
 	}
@@ -265,19 +294,17 @@ rencache_end_frame :: proc() {
 
 	// /* free fonts */
 	if has_free_commands {
-		for cmd in commands {
+		cmd = nil
+		for next_command(&cmd) {
 			if (cmd.type == CommandType.FREE_FONT) {
 				ren_free_font(cmd.font)
 			}
 		}
 	}
 
-	clear(&commands)
-
+	// reset command buffer
+	command_buf_idx = 0
 	/* swap cell buffer and reset */
 	cells, cells_prev = cells_prev, cells
-
-	// free everything
-	runtime.default_temp_allocator_temp_end(frame_temp_arena)
 }
 
