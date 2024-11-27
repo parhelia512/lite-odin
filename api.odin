@@ -2,13 +2,6 @@ package main
 
 import lua "vendor:lua/5.2"
 
-foreign import liblite "liblite.a"
-
-foreign liblite {
-	luaopen_system :: proc(L: ^lua.State) -> i32 ---
-	// luaopen_renderer :: proc(L: ^lua.State) -> i32 ---
-}
-
 API_TYPE_FONT :: "Font"
 
 // odinfmt: disable
