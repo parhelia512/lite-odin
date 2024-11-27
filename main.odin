@@ -47,6 +47,7 @@ blue :: #force_inline proc($s: string) -> string {
 run_at_exit :: proc "c" () {
 	context = runtime.default_context()
 	fmt.println(blue("Exiting..."))
+	sdl.DestroyWindow(window)
 	sdl.Quit()
 
 	when ODIN_DEBUG {
