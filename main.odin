@@ -152,6 +152,7 @@ main :: proc() {
 	lua.L_dostring(L, lua_code)
 
 	lua.close(L)
+	ren_free_fonts()
 	sdl.DestroyWindow(window)
 	sdl.Quit()
 }

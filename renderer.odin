@@ -1,5 +1,6 @@
 package main
 
+import "base:runtime"
 import "core:fmt"
 import "core:math"
 import "core:mem"
@@ -44,13 +45,17 @@ RenFont :: struct {
 	height:  i32,
 }
 
+initial_frame: bool
+loaded_fonts: [dynamic]^RenFont
+default_allocator: runtime.Allocator
+
 ren_init :: proc(win: ^sdl.Window) {
 	window = win
 	surf: ^sdl.Surface = sdl.GetWindowSurface(window)
 	ren_set_clip_rect(RenRect{0, 0, surf^.w, surf^.h})
+	default_allocator = context.allocator
+	assert(default_allocator.data != nil)
 }
-
-initial_frame: bool
 
 ren_update_rects :: proc "contextless" (rects: [^]RenRect, count: i32) {
 	sdl.UpdateWindowSurfaceRects(window, transmute([^]sdl.Rect)rects, count)
@@ -76,21 +81,20 @@ ren_get_size :: proc "contextless" (x: ^i32, y: ^i32) {
 
 ren_new_image :: proc(width: i32, height: i32) -> ^RenImage {
 	assert(width > 0 && height > 0)
-	image: ^RenImage = new(RenImage)
-	image^.pixels = make([]RenColor, width * height)
+	image: ^RenImage = new(RenImage, default_allocator)
+	image^.pixels = make([]RenColor, width * height, default_allocator)
 	image^.width = width
 	image^.height = height
 	return image
 }
 
 ren_free_image :: proc(image: ^RenImage) {
-	delete(image^.pixels)
-	free(image)
+	delete(image^.pixels, default_allocator)
+	free(image, default_allocator)
 }
 
 load_glyphset :: proc(font: ^RenFont, idx: i32) -> ^GlyphSet {
-	set := new(GlyphSet)
-	//
+	set := new(GlyphSet, default_allocator)
 	/* init image */
 	width: i32 = 128
 	height: i32 = 128
@@ -161,14 +165,16 @@ get_glyphset :: proc(font: ^RenFont, codepoint: i32) -> ^GlyphSet {
 
 ren_load_font :: proc(filename: cstring, size: f32) -> ^RenFont {
 	/* init font */
-	font := new(RenFont)
+	// context.allocator is nil here as this proc gets called from lua -> odin "c" proc land
+	assert(default_allocator.data != nil)
+	font := new(RenFont, default_allocator)
 	font^.size = size
 
 	/* load font into buffer */
-	data, success := os.read_entire_file_from_filename(string(filename))
+	data, success := os.read_entire_file_from_filename(string(filename), default_allocator)
 	if !success {
 		fmt.println("Failed to read file from filename", filename)
-		free(font)
+		free(font, default_allocator)
 		return nil
 	}
 	font^.data = data
@@ -190,20 +196,38 @@ ren_load_font :: proc(filename: cstring, size: f32) -> ^RenFont {
 	set: ^GlyphSet = get_glyphset(font, '\n')
 	set^.glyphs['\t'].x1 = set^.glyphs['\t'].x0
 	set^.glyphs['\n'].x1 = set^.glyphs['\n'].x0
+	append(&loaded_fonts, font)
 
 	return font
 }
 
 ren_free_font :: proc(font: ^RenFont) {
+	for i := 0; i < len(loaded_fonts); i += 1 {
+		if loaded_fonts[i] == font {
+			unordered_remove(&loaded_fonts, i)
+			break
+		}
+	}
+
 	for i := 0; i < MAX_GLYPHSET; i += 1 {
 		set: ^GlyphSet = font^.sets[i]
 		if set != nil {
 			ren_free_image(set^.image)
-			free(set)
+			free(set, default_allocator)
 		}
 	}
-	delete(font^.data)
-	free(font)
+	delete(font^.data, default_allocator)
+	free(font, default_allocator)
+}
+
+ren_free_fonts :: proc() {
+	assert(default_allocator.data != nil)
+	size := len(loaded_fonts)
+	fmt.println("Free fonts size: ", size, context.allocator.data)
+	for i := 0; i < size; i += 1 {
+		ren_free_font(pop(&loaded_fonts))
+	}
+	assert(len(loaded_fonts) == 0)
 }
 
 ren_set_font_tab_width :: proc(font: ^RenFont, n: i32) {
