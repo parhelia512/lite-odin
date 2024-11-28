@@ -247,10 +247,10 @@ rencache_end_frame :: proc() {
 	/* expand rects from cells to pixels */
 	for i := 0; i < rect_count; i += 1 {
 		r: ^RenRect = &rect_buf[i]
-		r^.x *= CELL_SIZE
-		r^.y *= CELL_SIZE
-		r^.width *= CELL_SIZE
-		r^.height *= CELL_SIZE
+		r.x *= CELL_SIZE
+		r.y *= CELL_SIZE
+		r.width *= CELL_SIZE
+		r.height *= CELL_SIZE
 		r^ = intersect_rects(r^, screen_rect)
 	}
 

@@ -52,7 +52,7 @@ default_allocator: runtime.Allocator
 ren_init :: proc(win: ^sdl.Window) {
 	window = win
 	surf: ^sdl.Surface = sdl.GetWindowSurface(window)
-	ren_set_clip_rect(RenRect{0, 0, surf^.w, surf^.h})
+	ren_set_clip_rect(RenRect{0, 0, surf.w, surf.h})
 	default_allocator = context.allocator
 	assert(default_allocator.data != nil)
 }
@@ -75,21 +75,21 @@ ren_set_clip_rect :: proc "contextless" (rect: RenRect) {
 
 ren_get_size :: proc "contextless" (x: ^i32, y: ^i32) {
 	surf: ^sdl.Surface = sdl.GetWindowSurface(window)
-	x^ = surf^.w
-	y^ = surf^.h
+	x^ = surf.w
+	y^ = surf.h
 }
 
 ren_new_image :: proc(width: i32, height: i32) -> ^RenImage {
 	assert(width > 0 && height > 0)
 	image: ^RenImage = new(RenImage, default_allocator)
-	image^.pixels = make([]RenColor, width * height, default_allocator)
-	image^.width = width
-	image^.height = height
+	image.pixels = make([]RenColor, width * height, default_allocator)
+	image.width = width
+	image.height = height
 	return image
 }
 
 ren_free_image :: proc(image: ^RenImage) {
-	delete(image^.pixels, default_allocator)
+	delete(image.pixels, default_allocator)
 	free(image, default_allocator)
 }
 
@@ -103,48 +103,48 @@ load_glyphset :: proc(font: ^RenFont, idx: i32) -> ^GlyphSet {
 	done: i32 = -1
 	for done < 0 {
 		//   /* load glyphs */
-		set^.image = ren_new_image(width, height)
+		set.image = ren_new_image(width, height)
 		s :=
 			stbtt.ScaleForMappingEmToPixels(&font.stbfont, 1) /
 			stbtt.ScaleForPixelHeight(&font.stbfont, 1)
 
 		res: i32 = stbtt.BakeFontBitmap(
-			raw_data(font^.data),
+			raw_data(font.data),
 			0,
-			font^.size * s,
-			cast([^]u8)raw_data(set^.image^.pixels),
+			font.size * s,
+			cast([^]u8)raw_data(set.image.pixels),
 			width,
 			height,
 			idx * 256,
 			256,
-			raw_data(&set^.glyphs),
+			raw_data(&set.glyphs),
 		)
 
 		/* retry with a larger image buffer if the buffer wasn't large enough */
 		if (res < 0) {
 			width *= 2
 			height *= 2
-			ren_free_image(set^.image)
-			set^.image = ren_new_image(width, height)
+			ren_free_image(set.image)
+			set.image = ren_new_image(width, height)
 		}
 		done = res
 	}
 	/* adjust glyph yoffsets and xadvance */
 	ascent, descent, linegap: i32
-	stbtt.GetFontVMetrics(&font^.stbfont, &ascent, &descent, &linegap)
-	scale: f32 = stbtt.ScaleForMappingEmToPixels(&font^.stbfont, font^.size)
+	stbtt.GetFontVMetrics(&font.stbfont, &ascent, &descent, &linegap)
+	scale: f32 = stbtt.ScaleForMappingEmToPixels(&font.stbfont, font.size)
 	scaled_ascent: i32 = cast(i32)(f32(ascent) * scale + 0.5)
 
 	for i := 0; i < 256; i += 1 {
-		set^.glyphs[i].yoff += f32(scaled_ascent)
-		set^.glyphs[i].xadvance = math.floor(set^.glyphs[i].xadvance)
+		set.glyphs[i].yoff += f32(scaled_ascent)
+		set.glyphs[i].xadvance = math.floor(set.glyphs[i].xadvance)
 	}
 
 	/* convert 8bit data to 32bit */
 	for i := width * height - 1; i >= 0; i -= 1 {
-		raw_pixels: [^]RenColor = raw_data(set^.image^.pixels)
+		raw_pixels: [^]RenColor = raw_data(set.image.pixels)
 		n: u8 = (cast([^]u8)raw_pixels)[i]
-		set^.image^.pixels[i] = RenColor {
+		set.image.pixels[i] = RenColor {
 			r = 255,
 			g = 255,
 			b = 255,
@@ -157,10 +157,10 @@ load_glyphset :: proc(font: ^RenFont, idx: i32) -> ^GlyphSet {
 get_glyphset :: proc(font: ^RenFont, codepoint: i32) -> ^GlyphSet {
 	idx := (codepoint >> 8) % MAX_GLYPHSET
 	assert(font != nil)
-	if font^.sets[idx] == nil {
-		font^.sets[idx] = load_glyphset(font, idx)
+	if font.sets[idx] == nil {
+		font.sets[idx] = load_glyphset(font, idx)
 	}
-	return font^.sets[idx]
+	return font.sets[idx]
 }
 
 ren_load_font :: proc(filename: cstring, size: f32) -> ^RenFont {
@@ -168,7 +168,7 @@ ren_load_font :: proc(filename: cstring, size: f32) -> ^RenFont {
 	// context.allocator is nil here as this proc gets called from lua -> odin "c" proc land
 	assert(default_allocator.data != nil)
 	font := new(RenFont, default_allocator)
-	font^.size = size
+	font.size = size
 
 	/* load font into buffer */
 	data, success := os.read_entire_file_from_filename(string(filename), default_allocator)
@@ -177,10 +177,10 @@ ren_load_font :: proc(filename: cstring, size: f32) -> ^RenFont {
 		free(font, default_allocator)
 		return nil
 	}
-	font^.data = data
+	font.data = data
 
 	/* init stbfont */
-	ok := cast(i32)stbtt.InitFont(&font^.stbfont, raw_data(font^.data), 0)
+	ok := cast(i32)stbtt.InitFont(&font.stbfont, raw_data(font.data), 0)
 	if ok == 0 {
 		fmt.println("Failed to init font")
 		return nil
@@ -188,14 +188,14 @@ ren_load_font :: proc(filename: cstring, size: f32) -> ^RenFont {
 
 	/* get height and scale */
 	ascent, descent, linegap: i32
-	stbtt.GetFontVMetrics(&font^.stbfont, &ascent, &descent, &linegap)
-	scale := stbtt.ScaleForMappingEmToPixels(&font^.stbfont, size)
-	font^.height = cast(i32)(cast(f32)(ascent - descent + linegap) * scale + 0.5)
+	stbtt.GetFontVMetrics(&font.stbfont, &ascent, &descent, &linegap)
+	scale := stbtt.ScaleForMappingEmToPixels(&font.stbfont, size)
+	font.height = cast(i32)(cast(f32)(ascent - descent + linegap) * scale + 0.5)
 
 	/* make tab and newline glyphs invisible */
 	set: ^GlyphSet = get_glyphset(font, '\n')
-	set^.glyphs['\t'].x1 = set^.glyphs['\t'].x0
-	set^.glyphs['\n'].x1 = set^.glyphs['\n'].x0
+	set.glyphs['\t'].x1 = set.glyphs['\t'].x0
+	set.glyphs['\n'].x1 = set.glyphs['\n'].x0
 	append(&loaded_fonts, font)
 
 	return font
@@ -210,13 +210,13 @@ ren_free_font :: proc(font: ^RenFont) {
 	}
 
 	for i := 0; i < MAX_GLYPHSET; i += 1 {
-		set: ^GlyphSet = font^.sets[i]
+		set: ^GlyphSet = font.sets[i]
 		if set != nil {
-			ren_free_image(set^.image)
+			ren_free_image(set.image)
 			free(set, default_allocator)
 		}
 	}
-	delete(font^.data, default_allocator)
+	delete(font.data, default_allocator)
 	free(font, default_allocator)
 }
 
@@ -232,12 +232,12 @@ ren_free_fonts :: proc() {
 
 ren_set_font_tab_width :: proc(font: ^RenFont, n: i32) {
 	set: ^GlyphSet = get_glyphset(font, '\t')
-	set^.glyphs['\t'].xadvance = cast(f32)n
+	set.glyphs['\t'].xadvance = cast(f32)n
 }
 
 ren_get_font_tab_width :: proc(font: ^RenFont) -> i32 {
 	set: ^GlyphSet = get_glyphset(font, '\t')
-	return cast(i32)set^.glyphs['\t'].xadvance
+	return cast(i32)set.glyphs['\t'].xadvance
 }
 
 ren_get_font_width :: proc(font: ^RenFont, text: cstring) -> i32 {
@@ -245,14 +245,14 @@ ren_get_font_width :: proc(font: ^RenFont, text: cstring) -> i32 {
 	p := string(text) // not a copy
 	for codepoint in p {
 		set: ^GlyphSet = get_glyphset(font, cast(i32)codepoint)
-		g: ^stbtt.bakedchar = &set^.glyphs[codepoint & 0xff]
-		x += cast(i32)g^.xadvance
+		g: ^stbtt.bakedchar = &set.glyphs[codepoint & 0xff]
+		x += cast(i32)g.xadvance
 	}
 	return x
 }
 
 ren_get_font_height :: proc "contextless" (font: ^RenFont) -> i32 {
-	return font^.height
+	return font.height
 }
 
 blend_pixel :: #force_inline proc "contextless" (dst: RenColor, src: RenColor) -> RenColor {
@@ -295,9 +295,9 @@ ren_draw_rect :: proc "contextless" (rect: RenRect, color: RenColor) {
 	y2 = y2 > clip.bottom ? clip.bottom : y2
 
 	surf: ^sdl.Surface = sdl.GetWindowSurface(window)
-	d: ^RenColor = cast(^RenColor)surf^.pixels
-	d = mem.ptr_offset(d, x1 + y1 * surf^.w)
-	dr := surf^.w - (x2 - x1)
+	d: ^RenColor = cast(^RenColor)surf.pixels
+	d = mem.ptr_offset(d, x1 + y1 * surf.w)
+	dr := surf.w - (x2 - x1)
 
 	if color.a == 0xff {
 		for j := y1; j < y2; j += 1 {
@@ -334,43 +334,43 @@ ren_draw_image :: proc "contextless" (
 	/* clip */
 	n := clip.left - x
 	if n > 0 {
-		sub^.width -= n
-		sub^.x += n
+		sub.width -= n
+		sub.x += n
 		x += n
 	}
 
 	n = clip.top - y
 	if n > 0 {
-		sub^.height -= n
-		sub^.y += n
+		sub.height -= n
+		sub.y += n
 		y += n
 	}
 
-	n = x + sub^.width - clip.right
+	n = x + sub.width - clip.right
 	if n > 0 {
-		sub^.width -= n
+		sub.width -= n
 	}
 
-	n = y + sub^.height - clip.bottom
+	n = y + sub.height - clip.bottom
 	if n > 0 {
-		sub^.height -= n
+		sub.height -= n
 	}
 
-	if (sub^.width <= 0 || sub^.height <= 0) {
+	if (sub.width <= 0 || sub.height <= 0) {
 		return
 	}
 
 	/* draw */
 	surf: ^sdl.Surface = sdl.GetWindowSurface(window)
-	s: [^]RenColor = raw_data(image^.pixels)
-	d: [^]RenColor = cast([^]RenColor)(surf^.pixels)
-	s = mem.ptr_offset(s, sub^.x + sub^.y * image^.width)
-	d = mem.ptr_offset(d, x + y * surf^.w)
-	sr := image^.width - sub^.width
-	dr := surf^.w - sub^.width
+	s: [^]RenColor = raw_data(image.pixels)
+	d: [^]RenColor = cast([^]RenColor)(surf.pixels)
+	s = mem.ptr_offset(s, sub.x + sub.y * image.width)
+	d = mem.ptr_offset(d, x + y * surf.w)
+	sr := image.width - sub.width
+	dr := surf.w - sub.width
 
-	for j := 0; j < cast(int)sub^.height; j += 1 {
-		for i := 0; i < cast(int)sub^.width; i += 1 {
+	for j := 0; j < cast(int)sub.height; j += 1 {
+		for i := 0; i < cast(int)sub.width; i += 1 {
 			d[0] = blend_pixel2(d[0], s[0], color)
 			d = mem.ptr_offset(d, 1)
 			s = mem.ptr_offset(s, 1)
@@ -386,20 +386,20 @@ ren_draw_text :: proc(font: ^RenFont, text: string, x: i32, y: i32, color: RenCo
 
 	for codepoint in text {
 		set: ^GlyphSet = get_glyphset(font, cast(i32)codepoint)
-		g: ^stbtt.bakedchar = &set^.glyphs[codepoint & 0xff]
+		g: ^stbtt.bakedchar = &set.glyphs[codepoint & 0xff]
 
-		rect.x = cast(i32)g^.x0
-		rect.y = cast(i32)g^.y0
-		rect.width = cast(i32)(g^.x1 - g^.x0)
-		rect.height = cast(i32)(g^.y1 - g^.y0)
+		rect.x = cast(i32)g.x0
+		rect.y = cast(i32)g.y0
+		rect.width = cast(i32)(g.x1 - g.x0)
+		rect.height = cast(i32)(g.y1 - g.y0)
 		ren_draw_image(
-			set^.image,
+			set.image,
 			&rect,
-			cast(i32)(cast(f32)x + g^.xoff),
-			cast(i32)(cast(f32)y + g^.yoff),
+			cast(i32)(cast(f32)x + g.xoff),
+			cast(i32)(cast(f32)y + g.yoff),
 			color,
 		)
-		x += cast(i32)g^.xadvance
+		x += cast(i32)g.xadvance
 	}
 	return x
 }
