@@ -101,9 +101,9 @@ load_glyphset :: proc(font: ^RenFont, idx: i32) -> ^GlyphSet {
 
 
 	done: i32 = -1
+	set.image = ren_new_image(width, height)
 	for done < 0 {
 		//   /* load glyphs */
-		set.image = ren_new_image(width, height)
 		s :=
 			stbtt.ScaleForMappingEmToPixels(&font.stbfont, 1) /
 			stbtt.ScaleForPixelHeight(&font.stbfont, 1)
@@ -223,7 +223,6 @@ ren_free_font :: proc(font: ^RenFont) {
 ren_free_fonts :: proc() {
 	assert(default_allocator.data != nil)
 	size := len(loaded_fonts)
-	fmt.println("Free fonts size: ", size, context.allocator.data)
 	for i := 0; i < size; i += 1 {
 		ren_free_font(pop(&loaded_fonts))
 	}
