@@ -7,8 +7,6 @@ import "core:math/rand"
 import "core:mem"
 import "core:strings"
 
-import stbtt "vendor:stb/truetype"
-
 /* a cache over the software renderer -- all drawing operations are stored as
 ** commands when issued. At the end of the frame we write the commands to a grid
 ** of hash values, take the cells that have changed since the previous frame,
@@ -67,7 +65,7 @@ cell_idx :: proc "contextless" (x: i32, y: i32) -> i32 {
 rects_overlap :: proc "contextless" (a: RenRect, b: RenRect) -> bool {
 // odinfmt: disable
   return b.x + b.width  >= a.x && b.x <= a.x + a.width &&
-         b.y + b.height >= a.y && b.y <= a.y + a.height;
+         b.y + b.height >= a.y && b.y <= a.y + a.height
 // odinfmt: enable
 }
 
@@ -89,7 +87,7 @@ merge_rects :: proc "contextless" (a: RenRect, b: RenRect) -> RenRect {
 
 push_command :: proc(type: CommandType, size: int) -> ^Command {
 
-	cmd := transmute(^Command)&command_buf[command_buf_idx]
+	cmd := cast(^Command)&command_buf[command_buf_idx]
 	n := command_buf_idx + size
 	if n > COMMAND_BUF_SIZE {
 		fmt.println("Command buffer exhausted!")
@@ -104,12 +102,12 @@ push_command :: proc(type: CommandType, size: int) -> ^Command {
 
 next_command :: proc(prev: ^^Command) -> bool {
 	if prev^ == nil {
-		prev^ = transmute(^Command)&command_buf[0]
+		prev^ = cast(^Command)&command_buf[0]
 	} else {
 		cmd := prev^
 		prev^ = (^Command)(uintptr(cmd) + uintptr(cmd.size))
 	}
-	return prev^ != (transmute(^Command)&command_buf[command_buf_idx])
+	return prev^ != (cast(^Command)&command_buf[command_buf_idx])
 }
 
 rencache_show_debug :: proc "contextless" (enable: bool) {
@@ -150,8 +148,8 @@ rencache_draw_text :: proc(font: ^RenFont, text: cstring, x: int, y: int, color:
 			cmd.rect = rect
 			cmd.font = font
 			cmd.tab_width = ren_get_font_tab_width(font)
-			text_buf: [^]u8 = transmute([^]u8)&cmd.text
-			text_in: [^]u8 = transmute([^]u8)text
+			text_buf: [^]u8 = cast([^]u8)&cmd.text
+			text_in: [^]u8 = cast([^]u8)text
 
 			for i := 0; i < text_len; i += 1 {
 				text_buf[i] = text_in[i]

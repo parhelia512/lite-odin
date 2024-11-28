@@ -3,7 +3,6 @@ package main
 import "base:runtime"
 import "core:c/libc"
 import "core:fmt"
-import "core:math"
 import "core:os"
 import "core:path/filepath"
 import "core:strings"
@@ -79,7 +78,7 @@ f_poll_event :: proc "c" (L: ^lua.State) -> i32 {
 		lua.pushstring(L, e.drop.file)
 		lua.pushinteger(L, cast(lua.Integer)(mx - wx))
 		lua.pushinteger(L, cast(lua.Integer)(my - wy))
-		sdl.free(transmute([^]u8)e.drop.file)
+		sdl.free(cast([^]u8)e.drop.file)
 		return 4
 
 	case .KEYDOWN:
@@ -204,7 +203,6 @@ f_show_confirm_dialog :: proc "c" (L: ^lua.State) -> i32 {
 	title: cstring = lua.L_checkstring(L, 1)
 	msg: cstring = lua.L_checkstring(L, 2)
 
-	x: uint = 1
 	when ODIN_OS == .Windows {
 		m := windows.utf8_to_wstring(string(msg))
 		t := windows.utf8_to_wstring(string(title))
@@ -311,7 +309,7 @@ f_get_clipboard :: proc "c" (L: ^lua.State) -> i32 {
 	text: cstring = sdl.GetClipboardText()
 	if (text == nil) {return 0}
 	lua.pushstring(L, text)
-	sdl.free(transmute([^]u8)text)
+	sdl.free(cast([^]u8)text)
 	return 1
 }
 
@@ -346,7 +344,7 @@ f_exec :: proc "c" (L: ^lua.State) -> i32 {
 	} else {
 		fmt.bprintf(buf, "%s &", cmd)
 		fmt.println("sasdasd ", buf)
-		_ = libc.system(transmute(cstring)raw_data(buf))
+		_ = libc.system(cast(cstring)raw_data(buf))
 	}
 	return 0
 }
@@ -357,8 +355,8 @@ f_fuzzy_match :: proc "c" (L: ^lua.State) -> i32 {
 	score: i32 = 0
 	run: i32 = 0
 
-	str := transmute([^]u8)strng
-	ptn := transmute([^]u8)pattern
+	str := cast([^]u8)strng
+	ptn := cast([^]u8)pattern
 
 	pattern_len := len(pattern)
 	str_len := len(strng)

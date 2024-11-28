@@ -58,7 +58,7 @@ ren_init :: proc(win: ^sdl.Window) {
 }
 
 ren_update_rects :: proc "contextless" (rects: [^]RenRect, count: i32) {
-	sdl.UpdateWindowSurfaceRects(window, transmute([^]sdl.Rect)rects, count)
+	sdl.UpdateWindowSurfaceRects(window, cast([^]sdl.Rect)rects, count)
 	initial_frame = true
 	if initial_frame {
 		sdl.ShowWindow(window)
@@ -112,7 +112,7 @@ load_glyphset :: proc(font: ^RenFont, idx: i32) -> ^GlyphSet {
 			raw_data(font^.data),
 			0,
 			font^.size * s,
-			transmute([^]u8)raw_data(set^.image^.pixels),
+			cast([^]u8)raw_data(set^.image^.pixels),
 			width,
 			height,
 			idx * 256,
@@ -143,7 +143,7 @@ load_glyphset :: proc(font: ^RenFont, idx: i32) -> ^GlyphSet {
 	/* convert 8bit data to 32bit */
 	for i := width * height - 1; i >= 0; i -= 1 {
 		raw_pixels: [^]RenColor = raw_data(set^.image^.pixels)
-		n: u8 = (transmute([^]u8)raw_pixels)[i]
+		n: u8 = (cast([^]u8)raw_pixels)[i]
 		set^.image^.pixels[i] = RenColor {
 			r = 255,
 			g = 255,
@@ -243,7 +243,7 @@ ren_get_font_tab_width :: proc(font: ^RenFont) -> i32 {
 ren_get_font_width :: proc(font: ^RenFont, text: cstring) -> i32 {
 	x: i32 = 0
 	p := string(text) // not a copy
-	for codepoint, index in p {
+	for codepoint in p {
 		set: ^GlyphSet = get_glyphset(font, cast(i32)codepoint)
 		g: ^stbtt.bakedchar = &set^.glyphs[codepoint & 0xff]
 		x += cast(i32)g^.xadvance
@@ -295,7 +295,7 @@ ren_draw_rect :: proc "contextless" (rect: RenRect, color: RenColor) {
 	y2 = y2 > clip.bottom ? clip.bottom : y2
 
 	surf: ^sdl.Surface = sdl.GetWindowSurface(window)
-	d: ^RenColor = transmute(^RenColor)surf^.pixels
+	d: ^RenColor = cast(^RenColor)surf^.pixels
 	d = mem.ptr_offset(d, x1 + y1 * surf^.w)
 	dr := surf^.w - (x2 - x1)
 
@@ -362,8 +362,8 @@ ren_draw_image :: proc "contextless" (
 
 	/* draw */
 	surf: ^sdl.Surface = sdl.GetWindowSurface(window)
-	s: [^]RenColor = transmute([^]RenColor)raw_data(image^.pixels)
-	d: [^]RenColor = transmute([^]RenColor)(surf^.pixels)
+	s: [^]RenColor = raw_data(image^.pixels)
+	d: [^]RenColor = cast([^]RenColor)(surf^.pixels)
 	s = mem.ptr_offset(s, sub^.x + sub^.y * image^.width)
 	d = mem.ptr_offset(d, x + y * surf^.w)
 	sr := image^.width - sub^.width
