@@ -54,7 +54,6 @@ ren_init :: proc(win: ^sdl.Window) {
 	surf: ^sdl.Surface = sdl.GetWindowSurface(window)
 	ren_set_clip_rect(RenRect{0, 0, surf.w, surf.h})
 	default_allocator = context.allocator
-	assert(default_allocator.data != nil)
 }
 
 ren_update_rects :: proc "contextless" (rects: [^]RenRect, count: i32) {
@@ -165,8 +164,6 @@ get_glyphset :: proc(font: ^RenFont, codepoint: i32) -> ^GlyphSet {
 
 ren_load_font :: proc(filename: cstring, size: f32) -> ^RenFont {
 	/* init font */
-	// context.allocator is nil here as this proc gets called from lua -> odin "c" proc land
-	assert(default_allocator.data != nil)
 	font := new(RenFont, default_allocator)
 	font.size = size
 
@@ -221,7 +218,6 @@ ren_free_font :: proc(font: ^RenFont) {
 }
 
 ren_free_fonts :: proc() {
-	assert(default_allocator.data != nil)
 	size := len(loaded_fonts)
 	for i := 0; i < size; i += 1 {
 		ren_free_font(pop(&loaded_fonts))
