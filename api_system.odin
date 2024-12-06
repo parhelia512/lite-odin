@@ -282,14 +282,15 @@ f_get_file_info :: proc "c" (L: ^lua.State) -> i32 {
 	context = runtime.default_context()
 	path: cstring = lua.L_checkstring(L, 1)
 
-	fi, err := os.stat(string(path), context.temp_allocator)
+	fi, err := os.stat(string(path))
+	defer os.file_info_delete(fi)
 	if err != nil {
 		lua.pushnil(L)
 		lua.pushstring(L, strings.unsafe_string_to_cstring(os.error_string(err)))
 		return 2
 	}
 
-	lua.newtable(L)
+	lua.createtable(L, 0, 3)
 	lua.pushinteger(L, cast(lua.Integer)time.time_to_unix(fi.modification_time))
 	lua.setfield(L, -2, "modified")
 
