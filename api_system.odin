@@ -1,6 +1,7 @@
 package main
 
 import "base:runtime"
+import "core:bufio"
 import "core:c/libc"
 import "core:fmt"
 import "core:os"
@@ -12,6 +13,89 @@ import "core:sys/windows"
 
 import lua "vendor:lua/5.4"
 import sdl "vendor:sdl2"
+
+search_file_find :: proc "c" (L: ^lua.State) -> i32 {
+
+	context = runtime.default_context()
+	pattern := string(lua.L_checkstring(L, 1))
+	file := string(lua.L_checkstring(L, 2))
+
+	f, ferr := os.open(file)
+	if ferr != 0 {
+		// handle error appropriately
+		fmt.println("failed to open ", file)
+		return 0
+	}
+	defer os.close(f)
+
+	r: bufio.Reader
+	buffer: [65536]byte
+	bufio.reader_init_with_buf(&r, os.stream_from_handle(f), buffer[:])
+	defer bufio.reader_destroy(&r)
+
+	pat_u8 := transmute([]u8)(pattern)
+
+	line_no := 1
+	num_results: i32 = 0
+	for {
+		// This will allocate a string because the line might go over the backing
+		// buffer and thus need to join things together
+		line, err := bufio.reader_read_slice(&r, '\n')
+
+		if err != nil {
+			if err == .EOF || err == .Unknown {
+				break
+			}
+			// TODO handle longer lines
+		}
+		pos := strcasestr(line, pat_u8)
+		if pos >= 0 {
+			lua.createtable(L, 0, 4)
+
+			lua.pushstring(L, strings.clone_to_cstring(file))
+			lua.setfield(L, -2, "file")
+
+			lua.pushstring(L, strings.clone_to_cstring(string(line)))
+			lua.setfield(L, -2, "text")
+
+			lua.pushinteger(L, lua.Integer(line_no))
+			lua.setfield(L, -2, "line")
+
+			lua.pushinteger(L, lua.Integer(pos + 1))
+			lua.setfield(L, -2, "col")
+			// fmt.println("Found match at:", line_no, pos + 1, "in:", file)
+			num_results += 1
+		}
+
+		line_no += 1
+	}
+	return num_results
+}
+
+strcasestr :: proc(h: []u8, n: []u8) -> int {
+	lower :: #force_inline proc "contextless" (ch: byte) -> byte {return ('a' - 'A') | ch}
+	if len(n) == 0 do return 0
+
+	first := lower(n[0])
+	for i := 0; i < len(h); i += 1 {
+		if lower(h[i]) == first {
+			n_idx := 1
+			h_idx := i + 1
+			for {
+				// needle exhausted, we found the str
+				if n_idx >= len(n) do return i
+				// haystack exhausted?
+				if h_idx >= len(h) do break
+				// mismatch, break and try again
+				if lower(h[h_idx]) != lower(n[n_idx]) do break
+				// move to next char
+				n_idx += 1
+				h_idx += 1
+			}
+		}
+	}
+	return -1
+}
 
 button_name :: proc(button: u8) -> cstring {
 	switch (button) {
@@ -411,6 +495,7 @@ lib := []lua.L_Reg {
   { "sleep",               f_sleep               },
   { "exec",                f_exec                },
   { "fuzzy_match",         f_fuzzy_match         },
+  { "search_file_find",    search_file_find      },
 }
 // odinfmt: enable
 

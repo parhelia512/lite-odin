@@ -51,7 +51,11 @@ function ResultsView:begin_search(text, fn)
   core.add_thread(function()
     for i, file in ipairs(core.project_files) do
       if file.type == "file" then
-        find_all_matches_in_file(self.results, file.filename, fn)
+        local result_objects = {system.search_file_find(text, file.filename)}
+        for _,v in pairs(result_objects) do
+          table.insert(self.results, { file = v.file, text = v.text, line = v.line, col = v.col })
+        end
+--         find_all_matches_in_file(self.results, file.filename, fn)
       end
       self.last_file_idx = i
     end
