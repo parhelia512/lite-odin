@@ -4,6 +4,7 @@ local keymap = require "core.keymap"
 local command = require "core.command"
 local style = require "core.style"
 local View = require "core.view"
+local translate = require "core.doc.translate"
 
 
 local ResultsView = View:extend()
@@ -220,6 +221,18 @@ end
 
 command.add(nil, {
   ["project-search:find"] = function()
+--   try to get the word under cursor or use selection
+    local doc = core.active_view.doc
+    if doc then
+      local line1, col1, line2, col2 = doc:get_selection(true)
+      if doc:has_selection() == false then
+        line1, col1 = translate.start_of_word(doc, line1, col1)
+        line2, col2 = translate.end_of_word(doc, line1, col1)
+      end
+      local text = doc:get_text(line1, col1, line2, col2)
+      core.command_view:set_text(text, nil)
+    end
+
     core.command_view:enter("Find Text In Project", function(text)
       text = text:lower()
       begin_search(text, function(line_text)
