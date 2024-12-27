@@ -134,7 +134,7 @@ load_glyphset :: proc(font: ^RenFont, idx: i32) -> ^GlyphSet {
 	scale: f32 = stbtt.ScaleForMappingEmToPixels(&font.stbfont, font.size)
 	scaled_ascent: i32 = cast(i32)(f32(ascent) * scale + 0.5)
 
-	for i := 0; i < 256; i += 1 {
+	for i in 0 ..< 256 {
 		set.glyphs[i].yoff += f32(scaled_ascent)
 		set.glyphs[i].xadvance = math.floor(set.glyphs[i].xadvance)
 	}
@@ -199,14 +199,14 @@ ren_load_font :: proc(filename: cstring, size: f32) -> ^RenFont {
 }
 
 ren_free_font :: proc(font: ^RenFont) {
-	for i := 0; i < len(loaded_fonts); i += 1 {
-		if loaded_fonts[i] == font {
+	for f, i in loaded_fonts {
+		if f == font {
 			unordered_remove(&loaded_fonts, i)
 			break
 		}
 	}
 
-	for i := 0; i < MAX_GLYPHSET; i += 1 {
+	for i in 0 ..< MAX_GLYPHSET {
 		set: ^GlyphSet = font.sets[i]
 		if set != nil {
 			ren_free_image(set.image)
@@ -295,16 +295,16 @@ ren_draw_rect :: proc "contextless" (rect: RenRect, color: RenColor) {
 	dr := surf.w - (x2 - x1)
 
 	if color.a == 0xff {
-		for j := y1; j < y2; j += 1 {
-			for i := x1; i < x2; i += 1 {
+		for j in y1 ..< y2 {
+			for i in x1 ..< x2 {
 				d^ = color
 				d = mem.ptr_offset(d, 1)
 			}
 			d = mem.ptr_offset(d, dr)
 		}
 	} else {
-		for j := y1; j < y2; j += 1 {
-			for i := x1; i < x2; i += 1 {
+		for j in y1 ..< y2 {
+			for i in x1 ..< x2 {
 				d^ = blend_pixel(d^, color)
 				d = mem.ptr_offset(d, 1)
 			}
@@ -364,8 +364,8 @@ ren_draw_image :: proc "contextless" (
 	sr := image.width - sub.width
 	dr := surf.w - sub.width
 
-	for j := 0; j < cast(int)sub.height; j += 1 {
-		for i := 0; i < cast(int)sub.width; i += 1 {
+	for j in 0 ..< sub.height {
+		for i in 0 ..< sub.width {
 			d[0] = blend_pixel2(d[0], s[0], color)
 			d = mem.ptr_offset(d, 1)
 			s = mem.ptr_offset(s, 1)

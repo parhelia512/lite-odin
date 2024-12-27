@@ -151,7 +151,7 @@ rencache_draw_text :: proc(font: ^RenFont, text: cstring, x: int, y: int, color:
 			text_buf: [^]u8 = cast([^]u8)&cmd.text
 			text_in: [^]u8 = cast([^]u8)text
 
-			for i := 0; i < text_len; i += 1 {
+			for i in 0..<text_len {
 				text_buf[i] = text_in[i]
 			}
 		}
@@ -184,8 +184,8 @@ update_overlapping_cells :: proc "contextless" (r: RenRect, h: u32) {
 
 	h := h
 
-	for y := y1; y <= y2; y += 1 {
-		for x := x1; x <= x2; x += 1 {
+	for y in y1..=y2 {
+		for x in x1..=x2 {
 			idx := cell_idx(x, y)
 			cells[idx] = hash(cells[idx], mem.ptr_to_bytes(&h, 1))
 		}
@@ -194,10 +194,9 @@ update_overlapping_cells :: proc "contextless" (r: RenRect, h: u32) {
 
 push_rect :: proc "contextless" (r: RenRect, count: int) -> int {
 	/* try to merge with existing rectangle */
-	for i := count - 1; i >= 0; i -= 1 {
-		rp: ^RenRect = &rect_buf[i]
-		if (rects_overlap(rp^, r)) {
-			rp^ = merge_rects(rp^, r)
+	#reverse for &rp in rect_buf[0:count] {
+		if (rects_overlap(rp, r)) {
+			rp = merge_rects(rp, r)
 			return count
 		}
 	}
@@ -233,8 +232,8 @@ rencache_end_frame :: proc() {
 	rect_count := 0
 	max_x := screen_rect.width / CELL_SIZE + 1
 	max_y := screen_rect.height / CELL_SIZE + 1
-	for y: i32 = 0; y < max_y; y += 1 {
-		for x: i32 = 0; x < max_x; x += 1 {
+	for y in 0 ..< max_y {
+		for x in 0 ..< max_x {
 			/* compare previous and current cell for change */
 			idx := cell_idx(x, y)
 			if (cells[idx] != cells_prev[idx]) {
@@ -245,20 +244,18 @@ rencache_end_frame :: proc() {
 	}
 
 	/* expand rects from cells to pixels */
-	for i := 0; i < rect_count; i += 1 {
-		r: ^RenRect = &rect_buf[i]
+	for &r in rect_buf[0:rect_count] {
 		r.x *= CELL_SIZE
 		r.y *= CELL_SIZE
 		r.width *= CELL_SIZE
 		r.height *= CELL_SIZE
-		r^ = intersect_rects(r^, screen_rect)
+		r = intersect_rects(r, screen_rect)
 	}
 
 	/* redraw updated regions */
 	has_free_commands := false
-	for i := 0; i < rect_count; i += 1 {
+	for &r in rect_buf[0:rect_count] {
 		/* draw */
-		r: RenRect = rect_buf[i]
 		ren_set_clip_rect(r)
 
 		cmd = nil
