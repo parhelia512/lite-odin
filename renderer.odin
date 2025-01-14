@@ -288,27 +288,25 @@ ren_draw_rect :: proc "contextless" (rect: RenRect, color: RenColor) {
 	y2: i32 = rect.y + rect.height
 	x2 = x2 > clip.right ? clip.right : x2
 	y2 = y2 > clip.bottom ? clip.bottom : y2
+	rect_width := x2 - x1
 
 	surf: ^sdl.Surface = sdl.GetWindowSurface(window)
-	d: ^RenColor = cast(^RenColor)surf.pixels
-	d = mem.ptr_offset(d, x1 + y1 * surf.w)
-	dr := surf.w - (x2 - x1)
+	d := cast([^]RenColor)surf.pixels
+	row_start := x1 + y1 * surf.w
 
 	if color.a == 0xff {
 		for _ in y1 ..< y2 {
-			for _ in x1 ..< x2 {
-				d^ = color
-				d = mem.ptr_offset(d, 1)
+			for i in 0 ..< rect_width {
+				d[row_start + i] = color
 			}
-			d = mem.ptr_offset(d, dr)
+			row_start += surf.w
 		}
 	} else {
 		for _ in y1 ..< y2 {
-			for _ in x1 ..< x2 {
-				d^ = blend_pixel(d^, color)
-				d = mem.ptr_offset(d, 1)
+			for i in 0 ..< rect_width {
+				d[row_start + i] = blend_pixel(d[i], color)
 			}
-			d = mem.ptr_offset(d, dr)
+			row_start += surf.w
 		}
 	}
 }
@@ -359,17 +357,15 @@ ren_draw_image :: proc "contextless" (
 	surf: ^sdl.Surface = sdl.GetWindowSurface(window)
 	s: [^]RenColor = raw_data(image.pixels)
 	d: [^]RenColor = cast([^]RenColor)(surf.pixels)
-	s = mem.ptr_offset(s, sub.x + sub.y * image.width)
-	d = mem.ptr_offset(d, x + y * surf.w)
-	sr := image.width - sub.width
-	dr := surf.w - sub.width
+	image_row := sub.x + sub.y * image.width
+	surf_row := x + y * surf.w
 
 	for _ in 0 ..< sub.height {
 		for i in 0 ..< sub.width {
-			d[i] = blend_pixel2(d[i], s[i], color)
+			d[surf_row + i] = blend_pixel2(d[surf_row + i], s[image_row + i], color)
 		}
-		d = mem.ptr_offset(d, dr + sub.width)
-		s = mem.ptr_offset(s, sr + sub.width)
+		image_row += image.width
+		surf_row += surf.w
 	}
 }
 
