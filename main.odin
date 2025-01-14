@@ -16,7 +16,6 @@ when ODIN_DEBUG {
 	track: mem.Tracking_Allocator
 }
 
-@(export, link_name = "window")
 window: ^sdl.Window
 
 get_exe_filename :: proc() -> cstring {
