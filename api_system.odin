@@ -21,7 +21,7 @@ search_file_find :: proc "c" (L: ^lua.State) -> i32 {
 	file := string(lua.L_checkstring(L, 2))
 
 	f, ferr := os.open(file)
-	if ferr != 0 {
+	if ferr != nil {
 		// handle error appropriately
 		fmt.println("failed to open ", file)
 		return 0
