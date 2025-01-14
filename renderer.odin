@@ -295,16 +295,16 @@ ren_draw_rect :: proc "contextless" (rect: RenRect, color: RenColor) {
 	dr := surf.w - (x2 - x1)
 
 	if color.a == 0xff {
-		for j in y1 ..< y2 {
-			for i in x1 ..< x2 {
+		for _ in y1 ..< y2 {
+			for _ in x1 ..< x2 {
 				d^ = color
 				d = mem.ptr_offset(d, 1)
 			}
 			d = mem.ptr_offset(d, dr)
 		}
 	} else {
-		for j in y1 ..< y2 {
-			for i in x1 ..< x2 {
+		for _ in y1 ..< y2 {
+			for _ in x1 ..< x2 {
 				d^ = blend_pixel(d^, color)
 				d = mem.ptr_offset(d, 1)
 			}
@@ -364,14 +364,12 @@ ren_draw_image :: proc "contextless" (
 	sr := image.width - sub.width
 	dr := surf.w - sub.width
 
-	for j in 0 ..< sub.height {
+	for _ in 0 ..< sub.height {
 		for i in 0 ..< sub.width {
-			d[0] = blend_pixel2(d[0], s[0], color)
-			d = mem.ptr_offset(d, 1)
-			s = mem.ptr_offset(s, 1)
+			d[i] = blend_pixel2(d[i], s[i], color)
 		}
-		d = mem.ptr_offset(d, dr)
-		s = mem.ptr_offset(s, sr)
+		d = mem.ptr_offset(d, dr + sub.width)
+		s = mem.ptr_offset(s, sr + sub.width)
 	}
 }
 

@@ -11,6 +11,8 @@ import "core:strings"
 import lua "vendor:lua/5.4"
 import sdl "vendor:sdl2"
 
+_ :: mem
+
 // global tracking allocator to be used in atexit handler
 when ODIN_DEBUG {
 	track: mem.Tracking_Allocator

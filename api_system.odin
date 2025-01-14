@@ -10,6 +10,7 @@ import "core:strings"
 import "core:time"
 
 import "core:sys/windows"
+_ :: windows
 
 import lua "vendor:lua/5.4"
 import sdl "vendor:sdl2"
