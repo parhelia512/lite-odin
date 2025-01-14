@@ -282,12 +282,10 @@ ren_draw_rect :: proc "contextless" (rect: RenRect, color: RenColor) {
 		return
 	}
 
-	x1: i32 = rect.x < clip.left ? clip.left : rect.x
-	y1: i32 = rect.y < clip.top ? clip.top : rect.y
-	x2: i32 = rect.x + rect.width
-	y2: i32 = rect.y + rect.height
-	x2 = x2 > clip.right ? clip.right : x2
-	y2 = y2 > clip.bottom ? clip.bottom : y2
+	x1: i32 = max(rect.x, clip.left)
+	y1: i32 = max(rect.y, clip.top)
+	x2: i32 = min(rect.x + rect.width, clip.right)
+	y2: i32 = min(rect.y + rect.height, clip.bottom)
 	rect_width := x2 - x1
 
 	surf: ^sdl.Surface = sdl.GetWindowSurface(window)
