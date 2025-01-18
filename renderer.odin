@@ -3,7 +3,6 @@ package main
 import "base:runtime"
 import "core:fmt"
 import "core:math"
-import "core:mem"
 import "core:os"
 
 import sdl "vendor:sdl2"
