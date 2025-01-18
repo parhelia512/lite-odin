@@ -289,6 +289,7 @@ f_show_confirm_dialog :: proc "c" (L: ^lua.State) -> i32 {
 	msg: cstring = lua.L_checkstring(L, 2)
 
 	when ODIN_OS == .Windows {
+		context = runtime.default_context()
 		message := windows.utf8_to_wstring(string(msg))
 		caption := windows.utf8_to_wstring(string(title))
 		id := windows.MessageBoxW(windows.HWND(nil), message, caption, windows.UINT(windows.MB_YESNO | windows.MB_ICONWARNING))
