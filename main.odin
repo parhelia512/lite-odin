@@ -36,7 +36,7 @@ get_scale :: proc() -> f64 {
 	dpi: f32
 	_ = sdl.GetDisplayDPI(0, nil, &dpi, nil)
 	when ODIN_OS == .Windows {
-		return dpi / 96.0
+		return f64(dpi) / 96.0
 	}
 	return 1.0
 }

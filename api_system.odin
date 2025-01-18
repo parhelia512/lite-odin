@@ -289,10 +289,10 @@ f_show_confirm_dialog :: proc "c" (L: ^lua.State) -> i32 {
 	msg: cstring = lua.L_checkstring(L, 2)
 
 	when ODIN_OS == .Windows {
-		m := windows.utf8_to_wstring(string(msg))
-		t := windows.utf8_to_wstring(string(title))
-		id := windows.MessageBoxW(windows.HWND(nil), m, w, windows.UINT(MB_YESNO | MB_ICONWARNING))
-		lua.pushboolean(L, cast(b32)(id == IDYES))
+		message := windows.utf8_to_wstring(string(msg))
+		caption := windows.utf8_to_wstring(string(title))
+		id := windows.MessageBoxW(windows.HWND(nil), message, caption, windows.UINT(windows.MB_YESNO | windows.MB_ICONWARNING))
+		lua.pushboolean(L, cast(b32)(id == windows.IDYES))
 	} else {
 		buttons := []sdl.MessageBoxButtonData {
 			{sdl.MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 1, "Yes"},
