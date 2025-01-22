@@ -41,6 +41,20 @@ get_scale :: proc() -> f64 {
 	return 1.0
 }
 
+init_window_icon :: proc() {
+	when ODIN_OS != .Windows {
+		surf: ^sdl.Surface = sdl.CreateRGBSurfaceFrom(
+			raw_data(icon_rgba[:]), 64, 64,
+			32, 64 * 4,
+			0x000000ff,
+			0x0000ff00,
+			0x00ff0000,
+			0xff000000);
+		defer sdl.FreeSurface(surf);
+		sdl.SetWindowIcon(window, surf);
+	}
+}
+
 blue :: #force_inline proc($s: string) -> string {
 	return ansi.CSI + ansi.FG_BLUE + ansi.SGR + s + ansi.CSI + ansi.RESET + ansi.SGR
 }
@@ -104,6 +118,7 @@ main :: proc() {
 		sdl.WINDOW_RESIZABLE | sdl.WINDOW_ALLOW_HIGHDPI | sdl.WINDOW_HIDDEN,
 	)
 
+	init_window_icon()
 	ren_init(window)
 
 	L := lua.L_newstate()
