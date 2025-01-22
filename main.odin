@@ -7,11 +7,13 @@ import "core:mem"
 import "core:os"
 import "core:os/os2"
 import "core:strings"
+import "core:dynlib"
 
 import lua "vendor:lua/5.4"
 import sdl "vendor:sdl2"
 
 _ :: mem
+_ :: dynlib
 
 // global tracking allocator to be used in atexit handler
 when ODIN_DEBUG {
@@ -84,6 +86,19 @@ run_at_exit :: proc "c" () {
 }
 
 main :: proc() {
+	when ODIN_OS == .Windows {
+		lib, ok := dynlib.load_library("user32.dll")
+		if !ok {
+			fmt.eprintln(dynlib.last_error())
+		}
+		SetProcessDPIAware, found := dynlib.symbol_address(lib, "a")
+		if !found {
+			fmt.eprintln(dynlib.last_error())
+		} else {
+			(cast(proc() -> libc.int)SetProcessDPIAware)()
+		}
+	}
+
 	fmt.println(blue("is ODIN_DEBUG: "), ODIN_DEBUG)
 	when ODIN_DEBUG {
 		mem.tracking_allocator_init(&track, context.allocator)
