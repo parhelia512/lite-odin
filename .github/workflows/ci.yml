@@ -1,0 +1,25 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  compile:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: laytan/setup-odin@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Dependencies on Mac
+        if: ${{ runner.os == 'macOS' }}
+        run: brew install lua sdl2
+
+      - name: Install Dependencies on Linux
+        if: ${{ runner.os == 'Linux' }}
+        run: |
+          sudo apt install liblua5.4-dev libsdl2-dev
+          make -j4 -C $(odin root)/vendor/stb/src
+
+      - run: odin build . -vet
