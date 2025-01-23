@@ -426,6 +426,7 @@ f_exec :: proc "c" (L: ^lua.State) -> i32 {
 	defer delete(buf)
 
 	when ODIN_OS == .Windows {
+		_ = cmd
 		//   sprintf(buf, "cmd /c \"%s\"", cmd);
 		//   WinExec(buf, SW_HIDE);
 	} else {
