@@ -19,6 +19,7 @@ jobs:
       - name: Install Dependencies on Linux
         if: ${{ runner.os == 'Linux' }}
         run: |
+          sudo apt update
           sudo apt install liblua5.4-dev libsdl2-dev
           make -j4 -C $(odin root)/vendor/stb/src
 
