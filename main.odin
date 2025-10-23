@@ -1,7 +1,7 @@
 package main
 import "base:runtime"
 import "core:c/libc"
-import "core:encoding/ansi"
+import "core:terminal/ansi"
 import "core:fmt"
 import "core:mem"
 import "core:os"

@@ -499,6 +499,7 @@ lib := []lua.L_Reg {
   { "exec",                f_exec                },
   { "fuzzy_match",         f_fuzzy_match         },
   { "search_file_find",    search_file_find      },
+  { nil,                   nil                   },
 }
 // odinfmt: enable
 

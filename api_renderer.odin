@@ -94,6 +94,7 @@ lib := []lua.L_Reg {
   { "set_clip_rect", f_set_clip_rect },
   { "draw_rect",     f_draw_rect     },
   { "draw_text",     f_draw_text     },
+  { nil,             nil             },
 }
 // odinfmt: enable
 

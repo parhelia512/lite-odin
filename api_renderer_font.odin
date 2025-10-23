@@ -57,6 +57,7 @@ lib := []lua.L_Reg {
   { "set_tab_width", f_set_tab_width },
   { "get_width",     f_get_width     },
   { "get_height",    f_get_height    },
+  { nil,             nil             },
 }
 // odinfmt: enable
 
