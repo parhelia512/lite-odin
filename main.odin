@@ -53,9 +53,9 @@ init_window_icon :: proc() {
 			0x000000ff,
 			0x0000ff00,
 			0x00ff0000,
-			0xff000000);
-		defer sdl.FreeSurface(surf);
-		sdl.SetWindowIcon(window, surf);
+			0xff000000)
+		defer sdl.FreeSurface(surf)
+		sdl.SetWindowIcon(window, surf)
 	}
 }
 

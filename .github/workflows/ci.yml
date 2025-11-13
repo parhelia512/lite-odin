@@ -23,4 +23,4 @@ jobs:
           sudo apt install liblua5.4-dev libsdl2-dev
           make -j4 -C $(odin root)/vendor/stb/src
 
-      - run: odin build . -vet
+      - run: odin build . -vet -strict-style
